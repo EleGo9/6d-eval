@@ -45,6 +45,8 @@ An example of info.json model is also provided as 'info.json'.
 
 
 Remember that you need a 'models' directory that must contain objects' ply CAD models and a model_info.json file.
+Alert!: ply CAD models are named as their obj_id+1
+
 models_info.json is structured as follows:
 {
     "obj_id": {
