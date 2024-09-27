@@ -1,0 +1,3 @@
+predictions: scene_gt.json
+ground_truth: scene_gt.json
+info_path: ./info.json

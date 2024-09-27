@@ -1,0 +1,23 @@
+{
+    "objects": ["chiave_candela_19", "chiave_fissa_8_10", "dado_m5", "ugello_l80_99",  "vite_65"],
+    "obj2id": {
+        "chiave_candela_19": 0,
+        "chiave_fissa_8_10": 1,
+        "dado_m5": 2,
+        "ugello_l80_99": 3,
+        "vite_65": 4
+    },
+    "id2obj" : {
+        "0": "chiave_candela_19",
+        "1": "chiave_fissa_8_10",
+        "2": "dado_m5",
+        "3": "ugello_l80_99",
+        "4": "vite_65"
+    },
+    "model_dir": "/home/elena/repos/6d-eval/models",
+    "vertex_scale": 0.001,
+    "sym_obj": ["dado_m5", "ugello_l80_99", "vite_65"],
+    "cam": [
+        608.268, 0, 310.899, 0, 608.179, 238.641, 0, 0, 1
+    ]
+}
