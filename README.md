@@ -3,7 +3,15 @@ Types of metrics:
 - re (rotation error)
 - te (translation error)
 - add(-s) (average distance to the corresponding (-closest) point)
-The code to compute metrics is the following:
+ 
+### Environment
+```
+git clone https://github.com/EleGo9/6d-eval.git
+cd 6d-eval
+conda env create -f env.yml
+```
+### Compute Metrics
+- The code to compute metrics is the following:
 ```
 python metrics.py --conf_path /path/to/conf/cfg.yml
 ```
