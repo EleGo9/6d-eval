@@ -4,9 +4,10 @@ import json
 import os.path as osp
 from utils import inout, misc
 import time
-from utils.pose_error import re, te, add, adi
+from utils.pose_error import re, te, add, adi, mssd, mspd
 from utils.pose_utils import get_closest_rot
 import argparse
+from mean_average_precision import MetricBuilder
 
 class Metrics:
     def __init__(self, conf_path):
@@ -14,7 +15,7 @@ class Metrics:
             config = yaml.safe_load(file)
             self.info = self._init_info(config['info_path'])
             self.diameters = self._get_diameters()
-            self.models = [osp.join(self.info["model_dir"], f"obj_{obj_id+1:06d}.ply") for obj_id in
+            self.models = [osp.join(self.info["model_dir"], f"obj_{obj_id:06d}.ply") for obj_id in
                            self.info["obj2id"].values()]
             self.models_3d = [inout.load_ply(self.models[i], vertex_scale=0.001)["pts"] for i in
                               range(len(self.models))]
@@ -22,6 +23,9 @@ class Metrics:
             self.metrics = [{"re": [], "te": [], "add": []} for _ in range(len(self.info["objects"]))]
             self.predictions_path = config['predictions']
             self.ground_truth_path = config['ground_truth']
+            print('metric list', MetricBuilder.get_metrics_list())
+            self.number_class = len(self.models)
+            self.metric_fn = MetricBuilder.build_evaluation_metric("map_2d", async_mode=False, num_classes=self.number_class)
 
     def _init_info(self, info_path):
         with open(info_path, "r") as f:
@@ -33,7 +37,7 @@ class Metrics:
             models_info = json.load(f)
         diameters = {}
         for i in range(len(models_info.keys())):
-            diameters[i] = models_info[str(i)]["diameter"] / 1000
+            diameters[i] = models_info[str(i)]["diameter"]/1000
         return diameters
 
     def _sym_infos(self, info):
@@ -48,6 +52,10 @@ class Metrics:
                 sym_info = None
             sym_infos[str(i)] = sym_info
         return sym_infos
+
+    def xywh2xyxy(self, xywh):
+        xyxy = [xywh[0], xywh[1], xywh[0] + xywh[2], xywh[1] + xywh[3]]
+        return xyxy
 
     def sort_boxes_by_iou(self, boxes1, boxes2):
         """
@@ -108,13 +116,12 @@ class Metrics:
         iou = intersection_area / union_area if union_area > 0 else 0
         return iou
 
-
-
-    def compute_metrics(self, predictions, annotations):
+    def compute_metrics(self, predictions, annotations, class_id):
         # given an image, compute the pose metrics
         predictions, annotations = self.sort_boxes_by_iou(predictions, annotations)
         for i in range(len(predictions)):
             pred = predictions[i]
+            # print('pred', pred)
             annot = annotations[i]
             R_pred = np.array(pred['cam_R_m2c']).reshape((3, 3))
             t_pred = np.array(pred['cam_t_m2c']).reshape((3, 1))  # * (self.info["cam"][0] / 608.219957982)
@@ -123,36 +130,60 @@ class Metrics:
 
             te_error = te(t_pred, t_gt)
             cat = pred['obj_id']
+
+            xyxy_pred = self.xywh2xyxy(pred["obj_bb"])
+            xyxy_gt = self.xywh2xyxy(annot["obj_bb"]) #.append(1.0) # default confidence = 1.0 ??
+            xyxy_pred.append(float(class_id))
+            xyxy_gt.append(float(class_id))
+            xyxy_pred.append(1.0)
+            xyxy_gt.append(0.0)
+            xyxy_gt.append(0.0)
+            self.metric_fn.add(np.array([xyxy_pred]), np.array([xyxy_gt]))
+
+
+
+            # iou_score = self.calculate_iou()
+
             if self.info["id2obj"][str(cat)] in self.info['sym_obj']:
                 R_gt_sym = get_closest_rot(R_pred, R_gt, self.sym_infos[str(cat)])
                 re_error = re(R_pred, R_gt_sym)
                 ad_error = adi(
                     R_pred, t_pred, R_gt, t_gt, pts=self.models_3d[cat]
                 )
+                # Not yet implemented:
+                # syms = []
+                # mssd_error = mssd(R_pred, t_pred, R_gt, t_gt, pts=self.models_3d[cat], syms=syms)
+                # mspd_error = mspd(R_pred, t_pred, R_gt, t_gt, pts=self.models_3d[cat], syms=syms)
+
             else:
                 re_error = re(R_pred, R_gt)
 
-                ad_error = add(
+                ad_error = adi(
                     R_pred, t_pred, R_gt, t_gt, pts=self.models_3d[cat]
                 )
+                # Not yet implemented:
+                # mssd_error = mssd(R_pred, t_pred, R_gt, t_gt, pts=self.models_3d[cat], syms=syms)
+                # mspd_error = mspd(R_pred, t_pred, R_gt, t_gt, pts=self.models_3d[cat], syms=syms)
+
             self.metrics[cat]["re"].append(re_error)
             self.metrics[cat]["te"].append(te_error)
             self.metrics[cat]["add"].append(float(ad_error < 0.1 * self.diameters[cat]))
 
-    def print_metrics(self):
+
+    def print_metrics(self, missing_class):
         for i in range(len(self.info["objects"])):
             if len(self.metrics[i]['re']) == 0:
                 continue
             print(f"Object {self.info['objects'][i]}")
             print(f"re: {np.mean(self.metrics[i]['re']):.2f}, te: {np.mean(self.metrics[i]['te']):.2f}, add: {np.mean(self.metrics[i]['add'])* 100 :.2f}")
             print("\n\n")
+            print(f"mAP : {self.metric_fn.value(iou_thresholds=np.arange(0.5, 1.0, 0.05), recall_thresholds=np.arange(0., 1.01, 0.01), mpolicy='greedy')['mAP'] * (self.number_class/(self.number_class-missing_class))}")
 
     def extract_obj_id_n(self, data, n):
         extracted_data = {}
 
         # Iterate through the keys in the main dictionary
         for key in data:
-            # Filter out only the objects with obj_id == 2
             filtered_objects = [entry for entry in data[key] if entry["obj_id"] == n]
 
             # If there are filtered objects, add them to the result dictionary
@@ -168,16 +199,18 @@ class Metrics:
         with open(self.ground_truth_path, 'r') as f:
             print(self.ground_truth_path)
             tot_poses = json.load(f)
+        missing_classes = 0
         for i in range(len(self.info['objects'])):
             predictions = self.extract_obj_id_n(tot_predictions, i)
+            if not predictions:
+                missing_classes+=1
             poses = self.extract_obj_id_n(tot_poses, i)
             for num in predictions:
-                print('NUM', num)
                 # annotation = annotations[num]
                 pose = poses[num]
                 prediction = predictions[num]
-                self.compute_metrics(prediction, pose)
-        self.print_metrics()
+                self.compute_metrics(prediction, pose, class_id=i)
+        self.print_metrics(missing_classes)
 
 
 
@@ -189,6 +222,7 @@ class Metrics:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--conf_path', type=str, default= '/home/elena/repos/6d-eval/config/metrics_cfg.yml' )
+    parser.add_argument('--iou_thres', default=np.arange(0.5, 1.0, 0.05))
     args = parser.parse_args()
     metric_computation = Metrics(conf_path=args.conf_path)
     metric_computation.run()
