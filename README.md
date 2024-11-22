@@ -58,8 +58,8 @@ models_info.json is structured as follows:
         "size_x": ...,
         "size_y": ...,
         "size_z": ...,
-        "symmetries_discrete"*: [{},...,{}],
-        "symmetries_continuous"*: [{},...,{}]
+        "symmetries_discrete" *: [{},...,{}],
+        "symmetries_continuous" *: [{},...,{}]
     },
 
 *optional, only if the object has symmetries
