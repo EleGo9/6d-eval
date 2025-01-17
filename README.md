@@ -9,7 +9,7 @@ Types of metrics:
 ```
 git clone https://github.com/EleGo9/6d-eval.git
 cd 6d-eval
-conda env create -f env.yml
+conda env create -f 6deval_env.yml
 ```
 ### Compute Metrics
 - The code to compute metrics is the following:
