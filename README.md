@@ -1,5 +1,6 @@
 # 6D pose metrics 
 Types of metrics:
+- mAP (mean Average Precision) on bounding boxes (iou_threshold = [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95])
 - re (rotation error)
 - te (translation error)
 - add(-s) (average distance to the corresponding (-closest) point)
@@ -56,7 +57,11 @@ models_info.json is structured as follows:
         "min_z": ...,
         "size_x": ...,
         "size_y": ...,
-        "size_z": ...
+        "size_z": ...,
+        "symmetries_discrete" *: [{},...,{}],
+        "symmetries_continuous" *: [{},...,{}]
     },
+
+*optional, only if the object has symmetries
 
     
