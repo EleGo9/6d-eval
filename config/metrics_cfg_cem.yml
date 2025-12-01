@@ -1,0 +1,3 @@
+predictions: cem_files/prediction.json
+ground_truth: cem_files/scene_gt.json
+info_path: ./info_cem.json
