@@ -1,0 +1,15 @@
+{
+    "objects": ["chiave_candela_19", "cem"],
+    "obj2id": {
+        "chiave_candela_19": 0,
+        "cem": 1
+    },
+    "id2obj" : {
+        "0": "chiave_candela_19",
+        "1": "cem"
+    },
+    "model_dir": "/home/elena/repos/6d-eval/models/models_cem",
+    "vertex_scale": 0.001,
+    "sym_obj": ["cem"],
+    "cam":   [608.219957982, 0.0, 320.0, 0.0, 631.389475612, 240.0, 0.0, 0.0, 1.0]
+}

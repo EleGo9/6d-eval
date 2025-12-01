@@ -1,0 +1,21 @@
+# GPU-accelerated requirements for metrics computation
+# Install PyTorch with CUDA support (adjust CUDA version as needed)
+torch>=2.0.0
+torchvision>=0.15.0
+torchaudio>=2.0.0
+
+# Alternative installation for CUDA 11.8:
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+
+# Alternative installation for CUDA 12.1:
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+
+# For CPU-only version:
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+
+# Existing dependencies (copy from requirements.txt as needed)
+numpy>=1.21.0
+scipy>=1.7.0
+opencv-python>=4.5.0
+PyYAML>=6.0
+mean-average-precision>=2024.1.5.0
